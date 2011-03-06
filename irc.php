@@ -133,20 +133,25 @@ class PHPIRC {
          		//end of command handler
 					                    
 				}elseif(preg_match("/JOIN :\#" . $this->IrcRoom . "/i", $buffer)) {
-					echo "someone joined\r\n";
+					$nick = "";
+					$this->extractNickAndMessage($buffer,$nick);
+					
+					if($this->IrcNick != $nick) {
+						$this->sendMessage("PRIVMSG #" . $this->IrcRoom . " :Magandang " . $this->getMeridiem() . " sa iyo " . $nick	. "\r\n");	
+					}
 				}
 
 			}
 		}
 	}
 	
-	private function extractNickAndMessage($str,&$nick,&$message) {
+	private function extractNickAndMessage($str,&$nick,&$message = "") {
 		$tmpStr = preg_split("/:/", $str);
-		$tmpStr = preg_split("/!/", $str);
+		$tmpStr = preg_split("/!/", $tmpStr[1]);
   		$nick = $tmpStr[0]; //nick of the sender
 					
-   	$tmpStr = preg_split("/PRIVMSG #" . $this->IrcRoom . " :/i", $str);
-   	$message = $tmpStr[1]; //message received
+   	$tmpStr = preg_split("/PRIVMSG #" . $this->IrcRoom . " :/i", $str); //got to fix the PRIVMSG thingy.... (add the join.. etc.. ) 
+   	$message = (isset($tmpStr[1]))?$tmpStr[1]:""; //message received
 
    	$tmpStr = NULL;
    	$nickSender = "";
