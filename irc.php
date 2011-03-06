@@ -126,27 +126,31 @@ class PHPIRC {
 				}elseif(preg_match("/PRIVMSG \#" . $this->IrcRoom . "/i", $buffer)) {
        			//room message
          		//dito ilalagay yung mga commands
-                    
-         		$tmpStr = preg_split("/:/", $buffer);
- 					$tmpStr = preg_split("/!/", $buffer);
-      			$nickSender = $tmpStr[0]; //nick of the sender
-					
-    				$tmpStr = preg_split("/PRIVMSG #" . $this->IrcRoom . " :/i", $buffer);
-   				$messageReceived = $tmpStr[1]; //message received
-					
+                    					
       			//add command handler below
 					
 					
          		//end of command handler
-					
-           		$tmpStr = NULL;
-            	$nickSender = "";
-           		$messageReceived = "";
-                    
+					                    
+				}elseif(preg_match("/JOIN :\#" . $this->IrcRoom . "/i", $buffer)) {
+					echo "someone joined\r\n";
 				}
 
 			}
 		}
+	}
+	
+	private function extractNickAndMessage($str,&$nick,&$message) {
+		$tmpStr = preg_split("/:/", $str);
+		$tmpStr = preg_split("/!/", $str);
+  		$nick = $tmpStr[0]; //nick of the sender
+					
+   	$tmpStr = preg_split("/PRIVMSG #" . $this->IrcRoom . " :/i", $str);
+   	$message = $tmpStr[1]; //message received
+
+   	$tmpStr = NULL;
+   	$nickSender = "";
+  		$messageReceived = "";   				
 	}
 
 	private function sendMessage($msg) {
