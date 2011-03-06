@@ -154,6 +154,26 @@ class PHPIRC {
 	}
 
 
+	private function getMeridiem() {
+
+		$nowHour = date("H");
+
+		if($nowHour == 0) {
+			return "hatinggabi";
+		} elseif($nowHour >= 1 && 	$nowHour <= 5) {
+			return "madaling araw";
+		} elseif($nowHour >=6 && $nowHour <= 11) {
+			return "umaga";
+		} elseif($nowHour == 12) {
+			return "tanghali";
+		} elseif($nowHour >= 13 && $nowHour <= 17) {
+			return "hapon";
+		} elseif($nowHour >= 18 && $nowHour <= 23) {
+			return "gabi";
+		}
+	
+	}
+
 }
 
 
