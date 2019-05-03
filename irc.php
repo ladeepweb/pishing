@@ -1,192 +1,175 @@
 <?php
 
-/**
- * PHPIRC Class
- *
- * A Simple IRC Bot
- *
- * @author		Ferdinand E. Silva (six519@phpugph.com)
- * @version		Version 1.0
- */
+// Time zone setting
+date_default_timezone_set('America/Santiago');
 
-class PHPIRC {
+// configurações de parametros do bot
+$server = 'irc.chknet.cc'; // irc chknet server
+$port = 6667; // port irc.chknet.cc
+$nickname = 'AmeViadex24'; //nickname of bot viadex24
+$ident = 'AmeViadex24'; //indeitify bot 
+//$identify = 'viadex088'; //password of profile viadex24
+$gecos = '02[BOT] OF #07USACC 10BY NORAH_C_IV'; //profile of viadex24
+$channel = '#USACC'; // channel of chknet made with norah
 
-	private $IrcServer = "";
-	private $IrcPort = 6667;
-    
-
-	private $IrcNick = "";
-	private $IrcRoom = "";
-
-	private $socket;
-	private $isConnected = false;
-	private $isAuthenticated = false;
+// conexão com a rede
+$socket = socket_create( AF_INET, SOCK_STREAM, SOL_TCP );
+$error = socket_connect( $socket, $server, $port );
 
 
-	public function __construct() {
-		$this->main();
-	}
-
-	private function main() {
- 		//get IRC Server
-		$this->IrcServer = $this->getUserInput("Please Enter Irc Server Address");
-
-		//get Port
-		if($this->getUserInput("Do You Want To Change The Irc Port? The Default Port is " . $this->IrcPort . ". Enter y to change") == "y") {
-			$this->IrcPort = (int)$this->getUserInput("Please Enter Port Number");
-		}
-
-		//get Nick
-		$this->IrcNick = $this->getUserInput("Please Enter Irc Nick");
- 		//get Irc Channel
-		$this->IrcRoom = $this->getUserInput("Please Enter Irc Channel");
-
-		$this->connect(); //connect to irc server
-	
-	}
-
-	private function getUserInput($msg) {
-		$endInput = false;
-
- 		while(!$endInput) {
- 			echo "\n" . $msg . ": ";
-  			$handle = fopen ("php://stdin","r");
-			$line = fgets($handle);
-
-			if(trim($line) != "") {
-				$endInput = true;
-				return trim($line);
- 			}
-
-			fclose($handle);
-		}
-    
-	}
-
-	private function connect() {
-        
-		$this->socket = socket_create(AF_INET,SOCK_STREAM,SOL_TCP);
-        
-		if(@socket_connect($this->socket, $this->IrcServer,$this->IrcPort)) {
- 			//connected
-			//read messages
-			$this->isConnected = true;    
- 			$this->receiveMessages();
-            
-		} else { 
-  			//disconnected
-   		echo "Cannot Connect To Server. ";
-     		echo socket_strerror(socket_last_error($this->socket)) . ".";
-
-    		//restart
-     		if($this->getUserInput("Restart Application? Enter y to restart") == "y") {
-     			$this->main();
-  			}
-		}
-	}
-
-	private function receiveMessages() {
-
-		while($this->isConnected) {
-
-    		$buffer = "";
-   		$flag = socket_recv($this->socket, $buffer, 1024,0);
-
-			if($flag < 0) {
-       		//error
-     		}elseif($flag == 0) {
-      		//disconnected
-         	$this->isConnected = false;
-         	$this->isAuthenticated = false;
-         	echo "\nClient Disconnected.\n";
-      	}else{
-        		//messages
-        		echo $buffer;
-
-      		if(preg_match("/Checking Ident/",$buffer) && !$this->isAuthenticated) {
-         		$this->sendMessage("NICK " . $this->IrcNick . "\r\n");
-     				$this->sendMessage("USER " . $this->IrcNick . " \"" . $this->IrcNick . ".com\" \"" . $this->IrcServer . "\" :" . $this->IrcNick . " robot\r\n");
-      		}elseif(preg_match("/Nickname is already in use/",$buffer) && !$this->isAuthenticated) {
-          		$this->IrcNick=$this->getUserInput("Please Enter New Irc Nick");
-      			$this->sendMessage("NICK " . $this->IrcNick . "\r\n");
-    				$this->sendMessage("USER " . $this->IrcNick . " \"" . $this->IrcNick . ".com\" \"" . $this->IrcServer . "\" :" . $this->IrcNick . " robot\r\n");
-      		}elseif(preg_match("/Erroneous Nickname/",$buffer) && !$this->isAuthenticated) {
-    				$this->IrcNick=$this->getUserInput("Please Enter New Irc Nick");
-     				$this->sendMessage("NICK " . $this->IrcNick . "\r\n");
-    				$this->sendMessage("USER " . $this->IrcNick . " \"" . $this->IrcNick . ".com\" \"" . $this->IrcServer . "\" :" . $this->IrcNick . " robot\r\n");
-    			}elseif(preg_match("/This nickname is registered/",$buffer) && !$this->isAuthenticated) {
-     				$this->IrcNick=$this->getUserInput("Please Enter New Irc Nick");
-     				$this->sendMessage("NICK " . $this->IrcNick . "\r\n");
-     				$this->sendMessage("USER " . $this->IrcNick . " \"" . $this->IrcNick . ".com\" \"" . $this->IrcServer . "\" :" . $this->IrcNick . " robot\r\n");
-       		}elseif(preg_match("/End of \/MOTD command/",$buffer) && !$this->isAuthenticated) {
-     				$this->isAuthenticated=true;
-    				$this->sendMessage("JOIN #" . $this->IrcRoom . "\r\n");
-      		}elseif(preg_match("/PING :/",$buffer)) {
-          		$this->sendMessage(preg_replace("/PING/", "PONG", $buffer) . "\r\n");
-				}elseif(preg_match("/PRIVMSG \#" . $this->IrcRoom . "/i", $buffer)) {
-       			//room message
-         		//dito ilalagay yung mga commands
-                    					
-      			//add command handler below
-					
-					
-         		//end of command handler
-					                    
-				}elseif(preg_match("/JOIN :\#" . $this->IrcRoom . "/i", $buffer)) {
-					$nick = "";
-					$this->extractNickAndMessage($buffer,$nick);
-					
-					if($this->IrcNick != $nick) {
-						$this->sendMessage("PRIVMSG #" . $this->IrcRoom . " :Magandang " . $this->getMeridiem() . " sa iyo " . $nick	. "\r\n");	
-					}
-				}
-
-			}
-		}
-	}
-	
-	private function extractNickAndMessage($str,&$nick,&$message = "") {
-		$tmpStr = preg_split("/:/", $str);
-		$tmpStr = preg_split("/!/", $tmpStr[1]);
-  		$nick = $tmpStr[0]; //nick of the sender
-					
-   	$tmpStr = preg_split("/PRIVMSG #" . $this->IrcRoom . " :/i", $str); //got to fix the PRIVMSG thingy.... (add the join.. etc.. ) 
-   	$message = (isset($tmpStr[1]))?$tmpStr[1]:""; //message received
-
-   	$tmpStr = NULL;
-   	$nickSender = "";
-  		$messageReceived = "";   				
-	}
-
-	private function sendMessage($msg) {
-		socket_write($this->socket,$msg,strlen($msg));
-	}
-
-
-	private function getMeridiem() {
-
-		$nowHour = date("H");
-
-		if($nowHour == 0) {
-			return "hatinggabi";
-		} elseif($nowHour >= 1 && 	$nowHour <= 5) {
-			return "madaling araw";
-		} elseif($nowHour >=6 && $nowHour <= 11) {
-			return "umaga";
-		} elseif($nowHour == 12) {
-			return "tanghali";
-		} elseif($nowHour >= 13 && $nowHour <= 17) {
-			return "hapon";
-		} elseif($nowHour >= 18 && $nowHour <= 23) {
-			return "gabi";
-		}
-	
-	}
-
+// adicione algum tratamento de erro caso a conexão não seja bem-sucedida
+if ( $socket === false ) {
+    $errorCode = socket_last_error();
+    $errorString = socket_strerror( $errorCode );
+    die( "Error $errorCode: $errorString\n");
 }
 
+//enviando informações de registro
+socket_write( $socket, "NICK $nickname\r\n" );
+//socket_write( $socket, "PASS $identify\r\n" );
+socket_write( $socket, "USER $ident * 8 :$gecos\r\n" );
 
-//run PHPIRC
-$run = new PHPIRC();
+// Finalmente, Loop Até o Soquete Fecha
+
+while ( is_resource( $socket ) ) {
+    
+    //buscar os dados do soquete.
+    $data = trim( socket_read( $socket, 1024, PHP_NORMAL_READ ) );
+    echo $data . "\n";
+
+    // Dividindo os dados em pedaços
+    $d = explode(' ', $data);
+    
+    // Preenchendo o array evita feio indefinido
+    $d = array_pad( $d, 10, '' );
+
+    // Manipulador de ping
+    // PING : irc.chknet.cc
+    if ( $d[0] === 'PING' ) {
+      socket_write( $socket, 'PONG ' . $d[1] . "\r\n" );
+    }
+     if ( $d[1] === '376' || $d[1] === '422' ) {
+       socket_write( $socket, 'JOIN ' . $channel . "\r\n" );
+       socket_write( $socket, "PRIVMSG NickServ :identify viadex088\n" );
+       socket_write( $socket, "PART #BRAZIL,#UNIX,#CCPOWER\n");
+
+     }
+
+     //   [0]                       [1]    [2]     [3]
+     //  Nickname!ident@hostname PRIVMSG #USACC : !test
+      if ( $d[3] === ':!help' ) {
+        $moo = "COMANDOS DA SALA → 07https://pastecode.xyz/view/raw/a99cf202 ";
+        socket_write( $socket, 'PRIVMSG ' . $d[2] . " :$moo\r\n" );
+     }
+
+     if ( $d[3] === ':!status' ) {
+        $moo = "12[$d[2]] → 02CHK 15[OFF] 02BIN 09[ON] 02IP 09[ON]02 CELL 09[ON]02 GG 14[OFF] 03CANAL EM DESENVOLVIMENTO ! ";
+        socket_write( $socket, 'PRIVMSG ' . $d[2] . " :$moo\r\n" );
+     }
+
+      if ( $d[3] === ':!bin' ) {
+          if ($d[3] === ':!bin') {
+    // SEPARA SOMENTE OS 6 PRIMEIROS DIGITOS
+    $checkBIN = substr($d[4], 0, 6);
+    // CURL
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_URL, 'https://lookup.binlist.net/'.$checkBIN);
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    $output = curl_exec($ch);
+    curl_close($ch);
+
+    // DECODIFICANDO RESPOSTA EM JSON
+    $jsonOUTPUT = json_decode($output, true);
+
+    // DEFININDO VARIAVEL COM NOME AMIGAVEL
+    $bandeira = $jsonOUTPUT['scheme'];
+    $tipo = $jsonOUTPUT['type'];
+    $nivel = $jsonOUTPUT['brand'];
+    $pais = $jsonOUTPUT['country']['alpha2'];
+    $moeda = $jsonOUTPUT['country']['currency'];
+    $bancoNOME = $jsonOUTPUT['bank']['name'];
+    $bancoURL = $jsonOUTPUT['bank']['url'];
+    $bancoPHONE = $jsonOUTPUT['bank']['phone'];
+
+    // DEFININDO MENSAGEM DE RESPOSTA AO IRC
+    $moo = "10[BIN] 03$checkBIN 10[BANDEIRA] 03$bandeira 10[TIPO]03 $tipo 10[NIVEL]03 $nivel 10[MOEDA]03 $moeda 10[PAÍS]03 $pais 10[BANCO]03 $bancoNOME - $bancoURL 10[$bancoPHONE]";
+
+    // ENVIANDO RESPOSTA AO IRC
+    socket_write($socket,'PRIVMSG '.$d[2]." :$moo\r\n" );
+}
+
+      }
+
+     if ( $d[3] === ':!chk' ) {
+        $moo = "  → COMANDO 01[DESATIVADO] 08PELO OWNER ";
+        socket_write( $socket, 'PRIVMSG ' . $d[2] . " :$moo\r\n" );
+     }
+     
+     if ( $d[3] === ':!ip' ) {
+         // SEPARA SOMENTE OS 11 DIGITOS
+    $iplist = $d[4];
+    $IPKEY = '7b6fab341bd4c7cd10c7e116c177c8c8fb246f77033f020b37d6b88467f14de1';
+    // CURL
+    $ch = curl_init();
+   curl_setopt($ch, CURLOPT_URL, "http://api.ipinfodb.com/v3/ip-city/?key=$IPKEY&ip=$iplist");
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    $output = curl_exec($ch);
+    curl_close($ch);
+    //SEPARANDO DADOS
+    $ex = explode(';', $output);
+    
+    // DEFININDO MENSAGEM DE RESPOSTA AO IRC
+    $moo = "08[-GeoIP-] → 10$ex[2] $ex[3] 08[ESTADO-PROVINCIA]10 $ex[5] 08[CIDADE] 10$ex[6] 08[PAIS] 10$ex[4] 08[CEP] 10$ex[7] 08[LO]10$ex[8] 08[LA]10$ex[9] ";
+
+    // ENVIANDO RESPOSTA AO IRC
+    print_r('PRIVMSG ');
+    socket_write($socket,'PRIVMSG '.$d[2]." :$moo\r\n" );
+     }
+
+     if ( $d[3] === ':!cell' ) {
+    // SEPARA SOMENTE OS 11 DIGITOS
+    $Number = substr($d[4], 0, 16);
+    $keyAPI = '5fa2c8a935ac364827f80d450b07d53d';
+    // CURL
+    $ch = curl_init();
+   curl_setopt($ch, CURLOPT_URL, "http://apilayer.net/api/validate?access_key=$keyAPI&number=$Number&country_code=&format=1");
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+    curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    $output = curl_exec($ch);
+    curl_close($ch);
+
+    // DECODIFICANDO RESPOSTA EM JSON
+    $jsonOUTPUT = json_decode($output, true);
+
+    // DEFININDO VARIAVEL COM NOME AMIGAVEL
+    $numero = $jsonOUTPUT['international_format'];
+    $codpais = $jsonOUTPUT['country_code'];
+    $pais = $jsonOUTPUT['country_name'];
+    $estado = $jsonOUTPUT['location'];
+    $operadora = $jsonOUTPUT['carrier'];
+    $linha = $jsonOUTPUT['line_type'];
+
+    // DEFININDO MENSAGEM DE RESPOSTA AO IRC
+    $moo = "10[NUMERO] 03$numero 10[LOCAL]03 $codpais 10[PAIS]03 $pais 10[ESTADO]03 $estado 10[OPERADORA]03 $operadora 10[LINHA]03 $linha";
+
+    // ENVIANDO RESPOSTA AO IRC
+    socket_write($socket,'PRIVMSG '.$d[2]." :$moo\r\n" );
+    
+      }
+      
+      if ( $d[3] === ':!unban' ) {
+      $d[1]=['-b',explode(' ',$moo)];
+            }
+
+
+}
 
 ?>
