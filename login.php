@@ -38,6 +38,6 @@ $enviado = $mail->Send();
 
 $mail->ClearAllRecipients();
 
-header("location: http://mayday.casa");
+header("location: https://m.facebook.com/home.php?_rdr");
  ?>
  
